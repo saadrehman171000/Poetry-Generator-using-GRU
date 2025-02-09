@@ -1,226 +1,244 @@
-# Import required libraries
-import streamlit as st  # Web application framework
-import numpy as np  # Numerical computations
-import tensorflow as tf  # Deep learning framework
-import pickle  # For loading saved encoder
-import os  # File operations
-from datetime import datetime  # Date and time handling
-import json  # JSON file handling
-import base64  # For download functionality
-from tensorflow.keras.preprocessing.sequence import pad_sequences  # Sequence padding
+import streamlit as st
+import numpy as np
+import tensorflow as tf
+import pickle
+import os
+from datetime import datetime
+import json
+import base64
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Configure the Streamlit page settings
+# Define Poetry Styles
+POETRY_STYLES = {
+    "Love": ["dil ke armaan", "mohabbat ki kahani", "teri yaad", "ishq ke rang"],
+    "Nature": ["chandni raat", "khushbu hawa", "barish ki boondein", "phool khile"],
+    "Philosophy": ["zindagi ke safar", "waqt ki raftar", "khwabon ki duniya", "soch ka darya"],
+    "Sadness": ["tanhai ke lamhe", "dard ke saaye", "judai ka gham", "aansu behte"]
+}
+
+def get_style_suggestions(selected_styles):
+    suggestions = []
+    for style in selected_styles:
+        if style in POETRY_STYLES:
+            suggestions.extend(POETRY_STYLES[style])
+    return suggestions if suggestions else ["dil ke armaan"]
+
+# Page config
 st.set_page_config(
-    page_title="Urdu Poetry Generator",
+    page_title="✨ Urdu Poetry Generator",
     page_icon="📜",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS
+# Clean, modern CSS with light theme
 st.markdown("""
     <style>
-    /* Modern Dark Theme */
+    /* Light Theme Base */
     .stApp {
-        background: linear-gradient(to bottom right, #0E1117, #1A1C24);
+        background-color: #ffffff;
     }
     
-    /* Title and Headers */
-    h1 {
-        background: linear-gradient(90deg, #FF4B4B, #FF8F8F);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3.5rem !important;
-        font-weight: 700 !important;
-        margin-bottom: 0.5rem !important;
+    /* Header */
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     }
     
-    h5 {
-        color: #B0B4BC !important;
-        font-size: 1.2rem !important;
-        font-weight: 400 !important;
-        margin-bottom: 2rem !important;
-    }
-    
-    .subheader {
-        color: #FF4B4B !important;
-        font-size: 1.5rem !important;
-        font-weight: 600 !important;
-        margin-bottom: 1rem !important;
+    .header h1 {
+        color: #1a1a1a;
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
     }
     
     /* Input Fields */
-    .stTextInput > div > div > input {
-        background-color: #262730;
-        color: white;
-        border: 2px solid #FF4B4B22;
+    .stTextInput input {
+        background: #ffffff;
+        border: 2px solid #e9ecef;
         border-radius: 8px;
-        padding: 0.75rem;
+        padding: 12px;
+        color: #1a1a1a;
         font-size: 1rem;
         transition: all 0.3s ease;
     }
     
-    .stTextInput > div > div > input:focus {
-        border-color: #FF4B4B;
-        box-shadow: 0 0 10px #FF4B4B44;
+    .stTextInput input:focus {
+        border-color: #ff4b82;
+        box-shadow: 0 0 0 4px rgba(255,75,130,0.1);
     }
     
     /* Sliders */
-    .stSlider {
-        padding: 1rem 0;
+    .stSlider div[data-baseweb="slider"] {
+        background: #e9ecef;
     }
     
-    .stSlider > div > div > div > div {
-        background-color: #FF4B4B;
+    .stSlider div[role="slider"] {
+        background: #ff4b82;
+        box-shadow: 0 2px 6px rgba(255,75,130,0.2);
     }
     
-    /* Buttons */
-    .stButton > button {
-        width: 100%;
-        background: linear-gradient(90deg, #FF4B4B, #FF8F8F);
+    /* Generate Button */
+    .stButton button {
+        background: linear-gradient(45deg, #ff4b82, #ff758c);
         color: white;
-        padding: 0.75rem 1.5rem;
-        font-size: 1.1rem;
-        font-weight: 600;
         border: none;
+        padding: 12px 24px;
         border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.2);
+        box-shadow: 0 4px 12px rgba(255,75,130,0.2);
     }
     
-    .stButton > button:hover {
+    .stButton button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(255, 75, 75, 0.3);
-    }
-    
-    .stButton > button:active {
-        transform: translateY(0);
+        box-shadow: 0 6px 16px rgba(255,75,130,0.3);
     }
     
     /* Poetry Output */
     .poetry-output {
-        background: rgba(38, 39, 48, 0.8);
-        color: #FFFFFF;
+        background: #ffffff;
         padding: 2rem;
         border-radius: 12px;
-        border: 2px solid #FF4B4B22;
-        margin-top: 1.5rem;
-        line-height: 1.8;
-        font-size: 1.2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(10px);
+        margin: 1rem 0;
+        text-align: center;
+        font-size: 1.3rem;
+        line-height: 2;
+        color: #1a1a1a;
+        border: 2px solid #e9ecef;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
     }
     
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: #262730;
+        background: #f8f9fa;
         padding: 0.5rem;
-        border-radius: 10px;
+        border-radius: 8px;
+        gap: 4px;
+        border: 1px solid #e9ecef;
     }
     
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: transparent;
-        border: none;
-        color: #B0B4BC;
-        font-weight: 600;
+        background: transparent;
+        color: #666;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
         transition: all 0.3s ease;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: rgba(255,75,130,0.05);
+        color: #ff4b82;
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(90deg, #FF4B4B44, #FF8F8F44);
-        color: white;
-        border-radius: 8px;
+        background: #ff4b82 !important;
+        color: white !important;
     }
     
-    /* Expander */
-    .streamlit-expanderHeader {
-        background-color: #262730 !important;
-        border-radius: 8px;
-        border: 1px solid #FF4B4B22;
+    /* Section Headers */
+    h3 {
+        color: #1a1a1a;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
     }
     
-    .streamlit-expanderContent {
-        background-color: #1E1F24 !important;
-        border-radius: 0 0 8px 8px;
-        border: 1px solid #FF4B4B22;
-        border-top: none;
-    }
-    
-    /* Metrics */
-    [data-testid="stMetricValue"] {
-        background: linear-gradient(90deg, #FF4B4B, #FF8F8F);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 2rem !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Download Link */
-    a.download-button {
-        display: inline-block;
-        background: linear-gradient(90deg, #FF4B4B22, #FF8F8F22);
-        color: #FF4B4B;
-        padding: 0.5rem 1rem;
+    /* Download Button */
+    .download-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8f9fa;
+        color: #ff4b82;
+        padding: 8px 16px;
         border-radius: 6px;
         text-decoration: none;
-        font-weight: 600;
-        margin-top: 1rem;
-        border: 1px solid #FF4B4B44;
+        font-weight: 500;
         transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
     }
     
-    a.download-button:hover {
-        background: linear-gradient(90deg, #FF4B4B, #FF8F8F);
+    .download-button:hover {
+        background: #ff4b82;
         color: white;
         transform: translateY(-2px);
     }
     
-    /* Spinner */
-    .stSpinner > div {
-        border-top-color: #FF4B4B !important;
-    }
-    
     /* Success Message */
-    .success-message {
-        background: linear-gradient(90deg, #00FF8822, #00FFB822);
-        border: 1px solid #00FF88;
-        color: #00FF88;
+    .stSuccess {
+        background: #d4edda;
+        color: #155724;
+        border-color: #c3e6cb;
         padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
+        border-radius: 6px;
     }
     
     /* Footer */
     .footer {
         text-align: center;
         padding: 2rem 0;
-        color: #808495;
+        color: #666;
         margin-top: 3rem;
-        border-top: 1px solid #FF4B4B22;
+        border-top: 1px solid #e9ecef;
     }
     
     .footer a {
-        color: #FF4B4B;
+        color: #ff4b82;
         text-decoration: none;
-        transition: color 0.3s ease;
+        font-weight: 500;
     }
     
     .footer a:hover {
-        color: #FF8F8F;
+        text-decoration: underline;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        color: #1a1a1a;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #ff4b82;
+        font-size: 2rem !important;
+        font-weight: 700 !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: #666;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Utility Functions
+# Header
+st.markdown("""
+    <div class="header">
+        <div style="background: #ff4b82; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">✨</div>
+        <h1>Urdu Poetry Generator</h1>
+    </div>
+    <p style="text-align: center; color: #666; margin-bottom: 2rem; font-size: 1.1rem;">
+        Create beautiful Urdu poetry using artificial intelligence
+    </p>
+""", unsafe_allow_html=True)
+
+# Define utility functions
 def get_download_link(text, filename, link_text):
-    """Create a download link for the generated poetry"""
     b64 = base64.b64encode(text.encode()).decode()
     return f'<a href="data:text/plain;base64,{b64}" download="{filename}" class="download-button">📥 {link_text}</a>'
 
 def load_history():
-    """Load poetry generation history from JSON file"""
     try:
         with open('poetry_history.json', 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -232,28 +250,24 @@ def load_history():
         return []
 
 def save_to_history(poetry, prompt):
-    """Save generated poetry to history file"""
     history = load_history()
     history.append({
         'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'prompt': prompt,
         'poetry': poetry
     })
-    # Keep only last 50 entries to manage file size
     with open('poetry_history.json', 'w', encoding='utf-8') as f:
-        json.dump(history[-50:], f)
+        json.dump(history[-50:], f)  # Keep last 50 entries
 
-# Load ML Model and Encoder
-@st.cache_resource  # Cache the model to avoid reloading
+# Load the model and encoder
+@st.cache_resource
 def load_model_and_encoder():
-    """Load the trained model and word encoder"""
     try:
         model = tf.keras.models.load_model("poetry_gru_model.h5")
         
         with open("word_encoder.pkl", "rb") as f:
             word_encoder = pickle.load(f)
             
-        # Create word-to-index and index-to-word mappings
         word_to_index = {word: i for i, word in enumerate(word_encoder.classes_)}
         index_to_word = {i: word for word, i in word_to_index.items()}
         
@@ -263,17 +277,13 @@ def load_model_and_encoder():
         return None, None, None
 
 def generate_nazam(start_text, words_per_line, total_lines, model, word_to_index, index_to_word):
-    """Generate poetry using the loaded model"""
     try:
         generated_text = start_text.split()
         
-        # Generate words for each line
         for _ in range(total_lines * words_per_line):
-            # Get last 5 words for context
             encoded_input = [word_to_index.get(word, 0) for word in generated_text[-5:]]
             encoded_input = pad_sequences([encoded_input], maxlen=5, truncating="pre")
             
-            # Predict next word
             predicted_probs = model.predict(encoded_input, verbose=0)
             predicted_index = np.argmax(predicted_probs, axis=-1)[0]
             next_word = index_to_word.get(predicted_index, "")
@@ -283,7 +293,6 @@ def generate_nazam(start_text, words_per_line, total_lines, model, word_to_index
                 
             generated_text.append(next_word)
             
-            # Add line break after specified words per line
             if len(generated_text) % words_per_line == 0:
                 generated_text.append("\n")
                 
@@ -292,75 +301,89 @@ def generate_nazam(start_text, words_per_line, total_lines, model, word_to_index
         st.error(f"🚫 Error generating poetry: {str(e)}")
         return ""
 
-# Load model and verify components
+# Load model and check
 model, word_to_index, index_to_word = load_model_and_encoder()
 
 if not all([model, word_to_index, index_to_word]):
     st.error("⚠️ Failed to load required components. Please check if all files exist.")
     st.stop()
 
-# Header Section
-st.title("✨ Urdu Poetry Generator")
-st.markdown("##### Create beautiful Urdu poetry using artificial intelligence")
-
-# Add tabs for different sections
-tab1, tab2, tab3 = st.tabs(["Generate", "History", "Analysis"])
+# Tabs
+tab1, tab2, tab3 = st.tabs(["🎨 Generate", "📚 History", "📊 Analysis"])
 
 with tab1:
-    # Generate tab content
-    col1, col2 = st.columns([2, 1])
+    # Add style mixer at the top
+    st.markdown("### 🎭 Poetry Style Mixer")
+    col1, col2 = st.columns([3, 2])
     
     with col1:
-        # Input Section
-        st.subheader("🎯 Generate Your Poetry")
-        start_text = st.text_input(
-            "Starting Words",
-            value="dil ke armaan",
-            help="Enter some words in Roman Urdu to start your poetry"
+        selected_styles = st.multiselect(
+            "Select Poetry Styles to Mix",
+            list(POETRY_STYLES.keys()),
+            default=["Love"],
+            key="style_mixer"
         )
+        
+        # Show suggested starting words based on selected styles
+        if selected_styles:
+            suggestions = get_style_suggestions(selected_styles)
+            selected_suggestion = st.selectbox(
+                "💡 Suggested Starting Words",
+                suggestions,
+                key="suggestion_selector"
+            )
+            
+            start_text = st.text_input(
+                "Starting Words",
+                value=selected_suggestion,
+                key="poetry_input",
+                help="Enter some words in Roman Urdu or use a suggestion"
+            )
+        else:
+            start_text = st.text_input(
+                "Starting Words",
+                value="dil ke armaan",
+                key="poetry_input",
+                help="Enter some words in Roman Urdu"
+            )
 
     with col2:
-        # Parameters Section
-        st.subheader("⚙️ Parameters")
+        st.markdown("### ⚙️ Parameters")
         words_per_line = st.slider(
             "Words per Line",
-            min_value=3,
-            max_value=15,
-            value=5,
-            help="Number of words in each line of poetry"
+            3, 15, 5,
+            key="words_slider"
         )
         total_lines = st.slider(
             "Total Lines",
-            min_value=2,
-            max_value=10,
-            value=5,
-            help="Number of lines in the generated poetry"
+            2, 10, 5,
+            key="lines_slider"
         )
 
     # Generate Button
-    if st.button("🎨 Generate Poetry", use_container_width=True):
-        with st.spinner("✍️ Creating your masterpiece..."):
+    if st.button("✨ Generate Poetry", key="generate_btn", use_container_width=True):
+        with st.spinner("Creating your masterpiece..."):
             poetry = generate_nazam(start_text, words_per_line, total_lines, model, word_to_index, index_to_word)
             if poetry:
-                st.markdown("### 📝 Generated Poetry")
-                st.markdown('<div class="poetry-output">' + poetry.replace('\n', '<br>') + '</div>', 
-                          unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div class="poetry-output">
+                        {poetry.replace('\n', '<br>')}
+                    </div>
+                """, unsafe_allow_html=True)
                 
-                # Add download button
-                st.markdown(get_download_link(
-                    poetry,
-                    f"poetry_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    "📥 Download Poetry"
-                ), unsafe_allow_html=True)
-                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(get_download_link(
+                        poetry,
+                        f"poetry_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                        "📥 Download Poetry"
+                    ), unsafe_allow_html=True)
+                with col2:
+                    if st.button("📋 Copy", key="copy_btn"):
+                        st.success("✨ Copied to clipboard!")
+                        
                 # Save to history
                 save_to_history(poetry, start_text)
-                
-                # Add copy button
-                if st.button("📋 Copy to Clipboard"):
-                    st.write('<script>navigator.clipboard.writeText(`' + poetry + '`);</script>', 
-                            unsafe_allow_html=True)
-                    st.success("Copied to clipboard!")
 
 with tab2:
     # History tab content
@@ -433,6 +456,6 @@ st.markdown("""
 ---
 <p style='text-align: center; color: #666;'>
     Made with ❤️ for Urdu Poetry | 
-    <a href="https://github.com/shaiiikh/Nazam-Generator-using-GRU" target="_blank">GitHub</a>
+    <a href="https://github.com/saadrehman171000/Poetry-Generator-using-GRU" target="_blank">GitHub</a>
 </p>
 """, unsafe_allow_html=True)
