@@ -1,3 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local settings
+.env
+.env.local
+.streamlit/secrets.toml
+
+# Logs and databases
+*.log
+*.sqlite
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated files
+poetry_history.json
+
+# Keep these files
+!roman urdu poetry.csv
+!poetry_gru_model.h5
+!word_encoder.pkl
+!training_history.pkl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -231,3 +281,8 @@ __pycache__/
 .DS_Store
 .env.local
 .streamlit/secrets.toml
+
+# Don't ignore these files
+!poetry_gru_model.h5
+!word_encoder.pkl
+!training_history.pkl

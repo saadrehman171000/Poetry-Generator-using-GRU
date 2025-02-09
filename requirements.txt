@@ -7,3 +7,6 @@ plotly
 toml
 protobuf
 h5py
+scikit-learn
+pandas
+joblib
