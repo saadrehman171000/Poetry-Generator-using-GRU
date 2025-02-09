@@ -226,3 +226,7 @@ env/
 poetry_history.json
 
 .env
+__pycache__/
+*.pyc
+.DS_Store
+.env.local

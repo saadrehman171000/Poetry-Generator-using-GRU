@@ -12,13 +12,13 @@ from dotenv import load_dotenv
 import plotly.graph_objects as go
 from collections import Counter
 import re
+import time
 
 # Load environment variables
 load_dotenv()
 
 # Initialize Cohere client securely
-co = cohere.Client(os.getenv('COHERE_API_KEY'))
-
+co = cohere.Client(os.getenv('COHERE_API_KEY', st.secrets["COHERE_API_KEY"]))
 def explain_poetry_for_everyone(poetry):
     try:
         prompt = f"""
@@ -119,7 +119,7 @@ def get_dominant_emotions(emotion_scores):
 
 # Define Poetry Styles
 POETRY_STYLES = {
-    "Love": ["dil ke armaan", "mohabbat ki kahani", "teri yaad", "ishq ke rang"],
+    "Love": ["mohabbat ki kahani", "teri yaad", "ishq ke rang", "dil ke armaan"],
     "Nature": ["chandni raat", "khushbu hawa", "barish ki boondein", "phool khile"],
     "Philosophy": ["zindagi ke safar", "waqt ki raftar", "khwabon ki duniya", "soch ka darya"],
     "Sadness": ["tanhai ke lamhe", "dard ke saaye", "judai ka gham", "aansu behte"]
@@ -190,7 +190,7 @@ def get_style_suggestions(selected_styles):
     for style in selected_styles:
         if style in POETRY_STYLES:
             suggestions.extend(POETRY_STYLES[style])
-    return suggestions if suggestions else ["dil ke armaan"]
+    return suggestions if suggestions else ["mohabbat ki kahani"]
 
 # Page config
 st.set_page_config(
@@ -428,7 +428,7 @@ st.markdown("""
 # Define utility functions
 def get_download_link(text, filename, link_text):
     b64 = base64.b64encode(text.encode()).decode()
-    return f'<a href="data:text/plain;base64,{b64}" download="{filename}" class="download-button">📥 {link_text}</a>'
+    return f'<a href="data:text/plain;base64,{b64}" download="{filename}" class="download-button">{link_text}</a>'
 
 def load_history():
     try:
@@ -501,7 +501,7 @@ if not all([model, word_to_index, index_to_word]):
     st.stop()
 
 # Tabs
-tab1, tab2, tab3 = st.tabs(["🎨 Generate", "📚 History", "📊 Analysis"])
+tab1, tab2 = st.tabs(["🎨 Generate", "📚 History"])
 
 # Add this after imports
 if 'generated_poetry' not in st.session_state:
@@ -546,7 +546,7 @@ with tab1:
         else:
             st.session_state.start_text = st.text_input(
                 "Starting Words",
-                value="dil ke armaan",
+                value="mohabbat ki kahani",
                 key="poetry_input"
             )
 
@@ -582,13 +582,13 @@ with tab1:
             st.markdown(get_download_link(
                 st.session_state.generated_poetry,
                 f"poetry_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                "📥 Download Poetry"
+                "⬇️ Download Poetry"
             ), unsafe_allow_html=True)
         with col2:
             if st.button("📋 Copy", key="copy_btn"):
                 st.success("✨ Copied to clipboard!")
 
-        # Replace the mood board expander with this
+        # Poetry Explanation
         with st.expander("✨ Poetry Explained"):
             with st.spinner("🤔 Understanding the poetry's deeper meaning..."):
                 explanation = explain_poetry_for_everyone(st.session_state.generated_poetry)
@@ -634,72 +634,69 @@ with tab2:
     if history:
         for idx, entry in enumerate(reversed(history)):
             with st.expander(f"🕒 {entry['date']} - Prompt: {entry['prompt'][:30]}..."):
-                st.text_area(
-                    "Poetry", 
-                    entry['poetry'], 
-                    height=150,
-                    key=f"history_poetry_{idx}"  # Add unique key for each text area
-                )
-                st.markdown(get_download_link(
-                    entry['poetry'],
-                    f"poetry_{entry['date'].replace(' ', '_')}.txt",
-                    "📥 Download"
-                ), unsafe_allow_html=True)
+                # Create three columns for better organization
+                col1, col2 = st.columns([1, 1])
+                
+                with col1:
+                    st.markdown("### 📝 Poetry")
+                    st.text_area(
+                        "Poetry", 
+                        entry['poetry'], 
+                        height=150,
+                        key=f"history_poetry_{idx}"
+                    )
+                    st.markdown(get_download_link(
+                        entry['poetry'],
+                        f"poetry_{entry['date'].replace(' ', '_')}.txt",
+                        "📥 Download"
+                    ), unsafe_allow_html=True)
+                    
+                    # Add explanation directly below poetry
+                    st.markdown("### ✨ Poetry Explanation")
+                    with st.spinner("Analyzing poetry..."):
+                        explanation = explain_poetry_for_everyone(entry['poetry'])
+                        if explanation:
+                            st.markdown(explanation)
+                
+                with col2:
+                    st.markdown("### 📊 Analysis")
+                    
+                    # Mood Analysis
+                    fig, emotion_scores = analyze_poetry_mood(entry['poetry'])
+                    if fig and emotion_scores:
+                        # Show dominant emotions
+                        dominant_emotions = get_dominant_emotions(emotion_scores)
+                        if dominant_emotions:
+                            st.markdown("#### 🎭 Dominant Emotions")
+                            for emotion in dominant_emotions:
+                                st.markdown(f"- {emotion}")
+                        
+                        # Display mood radar chart
+                        st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Word Statistics
+                    st.markdown("#### 📈 Statistics")
+                    words = entry['poetry'].split()
+                    unique_words = len(set(words))
+                    
+                    # Create metrics
+                    stat_col1, stat_col2 = st.columns(2)
+                    with stat_col1:
+                        st.metric("Total Words", len(words))
+                    with stat_col2:
+                        st.metric("Unique Words", unique_words)
+                    
+                    # Word frequency
+                    word_freq = Counter(words)
+                    most_common = word_freq.most_common(3)
+                    
+                    st.markdown("#### 🔤 Most Used Words")
+                    for word, count in most_common:
+                        st.markdown(f"- **{word}**: {count} times")
     else:
         st.info("No generation history yet. Create some poetry first!")
 
-with tab3:
-    # Analysis tab content
-    st.subheader("�� Poetry Analysis")
-    
-    if st.session_state.generated_poetry:
-        analysis_col1, analysis_col2 = st.columns(2)
-        
-        with analysis_col1:
-            # Word count analysis
-            words = st.session_state.generated_poetry.split()
-            st.metric("Total Words", len(words))
-            unique_words = len(set(words))
-            st.metric("Unique Words", unique_words)
-            st.metric("Vocabulary Richness", f"{(unique_words/len(words)*100):.1f}%")
-        
-        with analysis_col2:
-            # Line analysis
-            lines = [line for line in st.session_state.generated_poetry.split('\n') if line.strip()]
-            st.metric("Total Lines", len(lines))
-            avg_words_per_line = len(words)/len(lines) if lines else 0
-            st.metric("Avg Words per Line", f"{avg_words_per_line:.1f}")
-        
-        # Add word frequency analysis
-        st.markdown("### 📊 Word Frequency")
-        word_freq = Counter(words)
-        most_common = word_freq.most_common(5)
-        
-        # Create a bar chart for word frequency
-        word_labels = [word for word, _ in most_common]
-        word_counts = [count for _, count in most_common]
-        
-        fig = go.Figure(data=[
-            go.Bar(
-                x=word_labels,
-                y=word_counts,
-                marker_color='#ff4b82'
-            )
-        ])
-        
-        fig.update_layout(
-            title="Most Frequent Words",
-            xaxis_title="Words",
-            yaxis_title="Frequency",
-            showlegend=False
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-    else:
-        st.info("Generate some poetry first to see the analysis!")
-
-# About Section (at the bottom of all tabs)
+# About Section
 with st.expander("ℹ️ About this Poetry Generator"):
     st.markdown("""
     ### How it Works
