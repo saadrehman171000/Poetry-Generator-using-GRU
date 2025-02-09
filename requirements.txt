@@ -1,6 +1,6 @@
 streamlit==1.31.0
 numpy==1.26.3
-tensorflow-cpu==2.14.0
+tensorflow==2.13.0
 cohere==4.37
 python-dotenv==1.0.0
 plotly==5.18.0
