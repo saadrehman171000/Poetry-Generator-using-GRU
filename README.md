@@ -1,37 +1,48 @@
+# 🎭 Urdu Poetry Generator (Generative Nazam)
 
-# Generative_Nazam
+An AI-powered system that generates Urdu Nazams using GRU (Gated Recurrent Unit) neural network, creating authentic Roman Urdu poetry from user prompts.
 
-This project focuses on generating **Nazam** (a form of Urdu poetry) using a Deep Learning model. The model, built using **GRU** (Gated Recurrent Unit), is trained on a dataset of Roman Urdu poetry to generate the next part of a **Nazam** based on the user's input.
+## ✨ Features
 
-## Features
-- **Generative Model**: Uses a GRU model to generate the next part of a **Nazam** based on a user's input.
-- **Roman Urdu Text**: The model is trained specifically on Roman Urdu poetry, enabling it to generate authentic poetic text.
+- 🤖 **GRU Model**: Advanced neural network for natural language generation
+- 📝 **Roman Urdu**: Trained on authentic Urdu poetry dataset
+- 🎨 **Interactive UI**: Streamlit interface with real-time generation
+- 📊 **Analysis**: Poetry metrics and generation history
+- 🎯 **Customizable**: Adjustable line length and poem size
 
-## Project Structure
-1. **main.ipynb**: Jupyter notebook for training the GRU model on the dataset and saving the trained model and tokenizer.
-2. **roman urdu poetry.csv**: Dataset of Roman Urdu poetry used for training the model.
-3. **poetry_lstm_model.h5**: The trained model, ready for use.
-4. **training_history.pkl**: Stores the training history (loss, accuracy) of the model.
-5. **word_encoder.pkl**: The tokenizer used to convert text into tokenized sequences for model input.
+## 🛠️ Project Structure
 
-## Requirements
+- `main.ipynb`: Training notebook
+- `app.py`: Streamlit web application
+- `roman urdu poetry.csv`: Training dataset
+- `poetry_gru_model.h5`: Trained model
+- `word_encoder.pkl`: Word tokenizer
 
-Install the necessary Python libraries using pip:
+## 🚀 Quick Start
 
+1. **Clone & Install**:
 ```bash
+git clone https://github.com/saadrehman171000/Poetry-Generator-using-GRU.git
+cd Poetry-Generator-using-GRU
 pip install -r requirements.txt
 ```
 
-This will install:
-- `tensorflow` for the deep learning model.
-- `numpy`, `pandas`, and `scikit-learn` for data handling and processing.
+2. **Run Application**:
+```bash
+streamlit run app.py
+```
 
-## Setup
+3. **Generate Poetry**:
+- Enter starting words (e.g., "dil ke armaan")
+- Adjust words per line (3-15) and total lines (2-10)
+- Click "Generate Poetry"
 
-1. **Prepare Dataset**: Ensure you have the dataset file `roman urdu poetry.csv`, which contains two columns: `Poet` and `Poetry` (Roman Urdu text). The `Poetry` column should contain the text of the Nazams.
-   
-2. **Training the Model**: 
-   - Open and run the `main.ipynb` notebook to preprocess the data, train the GRU model, and save the model (`poetry_lstm_model.h5`) and tokenizer (`word_encoder.pkl`).
-   - The model and tokenizer are saved for future use.
+## ⚠️ Troubleshooting
 
-3. **Using the Model**: The trained model can be loaded for further inference or deployment as needed.
+- **Model Loading**: Verify `poetry_gru_model.h5` and `word_encoder.pkl` exist
+- **Performance**: First generation may be slower due to model loading
+- **Generation**: Use common Roman Urdu words for better results
+
+---
+<p align="center">Made with ❤️ for Urdu Poetry | 
+<a href="https://github.com/saadrehman171000/Poetry-Generator-using-GRU" target="_blank">GitHub</a></p>
