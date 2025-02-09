@@ -230,3 +230,4 @@ __pycache__/
 *.pyc
 .DS_Store
 .env.local
+.streamlit/secrets.toml
