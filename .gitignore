@@ -224,3 +224,5 @@ env/
 
 # Generated files
 poetry_history.json
+
+.env
